@@ -6,12 +6,12 @@ import * as enrollmentsDao from "../Enrollments/dao.js";
 function toSessionSafe(obj) {
     if (!obj) return null;
     try {
-        if (typeof obj.toObject === 'function') {
+        if (typeof obj.toObject === "function") {
             return JSON.parse(JSON.stringify(obj.toObject()));
         }
         return JSON.parse(JSON.stringify(obj));
     } catch (error) {
-        console.error('Error serializing object for session:', error);
+        console.error("Error serializing object for session:", error);
         return null;
     }
 }
@@ -22,7 +22,10 @@ export default function UserRoutes(app) {
             const newUser = await dao.createUser(req.body);
             res.json(newUser);
         } catch (error) {
-            res.status(500).json({ message: "Error creating user", error: error.message });
+            res.status(500).json({
+                message: "Error creating user",
+                error: error.message,
+            });
         }
     };
     const deleteUser = async (req, res) => {
@@ -30,7 +33,10 @@ export default function UserRoutes(app) {
             const status = await dao.deleteUser(req.params.userId);
             res.json(status);
         } catch (error) {
-            res.status(500).json({ message: "Error deleting user", error: error.message });
+            res.status(500).json({
+                message: "Error deleting user",
+                error: error.message,
+            });
         }
     };
     const findAllUsers = async (req, res) => {
@@ -49,7 +55,10 @@ export default function UserRoutes(app) {
             const users = await dao.findAllUsers();
             res.json(users);
         } catch (error) {
-            res.status(500).json({ message: "Error finding users", error: error.message });
+            res.status(500).json({
+                message: "Error finding users",
+                error: error.message,
+            });
         }
     };
     const findUserById = async (req, res) => {
@@ -61,22 +70,52 @@ export default function UserRoutes(app) {
                 res.status(404).json({ message: "User not found" });
             }
         } catch (error) {
-            res.status(500).json({ message: "Error finding user", error: error.message });
+            res.status(500).json({
+                message: "Error finding user",
+                error: error.message,
+            });
         }
     };
 
     const updateUser = async (req, res) => {
         const userId = req.params.userId;
         const userUpdates = req.body;
-        await dao.updateUser(userId, userUpdates);
         const currentUser = req.session["currentUser"];
-        if (currentUser && currentUser._id === userId) {
-            req.session["currentUser"] = { ...currentUser, ...userUpdates };
-            res.json(currentUser);
-        } else {
-            res.status(404).json({ message: "User not found" });
+
+        // Check if user is authenticated
+        if (!currentUser) {
+            res.status(401).json({ message: "Unauthorized - please sign in" });
+            return;
+        }
+
+        // Allow ADMIN users to edit any user, or users to edit themselves
+        const canEdit =
+            currentUser.role === "ADMIN" || currentUser._id === userId;
+
+        if (!canEdit) {
+            res.status(403).json({
+                message: "Forbidden - insufficient permissions",
+            });
+            return;
+        }
+
+        try {
+            const updatedUser = await dao.updateUser(userId, userUpdates);
+
+            // If user updated themselves, update session
+            if (currentUser._id === userId) {
+                req.session["currentUser"] = { ...currentUser, ...userUpdates };
+            }
+
+            res.json(updatedUser);
+        } catch (error) {
+            res.status(500).json({
+                message: "Error updating user",
+                error: error.message,
+            });
         }
     };
+    
     const signup = async (req, res) => {
         const user = await dao.findUserByUsername(req.body.username);
         if (user) {
