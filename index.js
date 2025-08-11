@@ -10,6 +10,10 @@ import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 import PeopleRoutes from "./Kambaz/People/routes.js";
 import "dotenv/config";
+import mongoose from "mongoose";
+
+const CONNECTION_STRING = process.env.MONGODB_CONNECTION_STRING || "mongodb://localhost:27017/kambaz";
+mongoose.connect(CONNECTION_STRING);
 
 const app = express();
 app.use(
@@ -32,6 +36,28 @@ if (process.env.NODE_ENV !== "development") { // Production settings
     };
 }
 app.use(session(sessionOptions));
+
+// Debug middleware to catch session serialization issues
+app.use((req, res, next) => {
+    const originalEnd = res.end;
+    res.end = function(...args) {
+        try {
+            return originalEnd.apply(this, args);
+        } catch (error) {
+            if (error.message.includes('Converting circular structure to JSON')) {
+                console.error('Session serialization error. Session contents:', Object.keys(req.session || {}));
+                console.error('Current user type:', typeof req.session?.currentUser);
+                console.error('Error:', error.message);
+                // Clear problematic session data
+                if (req.session) {
+                    req.session.currentUser = null;
+                }
+            }
+            throw error;
+        }
+    };
+    next();
+});
 
 app.use(express.json());
 

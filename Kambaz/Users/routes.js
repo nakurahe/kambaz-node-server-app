@@ -2,35 +2,100 @@ import * as dao from "./dao.js";
 import * as courseDao from "../Courses/dao.js";
 import * as enrollmentsDao from "../Enrollments/dao.js";
 
-export default function UserRoutes(app) {
-    const createUser = (req, res) => {};
-    const deleteUser = (req, res) => {};
-    const findAllUsers = (req, res) => {};
-    const findUserById = (req, res) => {};
+// Helper function to safely serialize objects for session storage
+function toSessionSafe(obj) {
+    if (!obj) return null;
+    try {
+        if (typeof obj.toObject === 'function') {
+            return JSON.parse(JSON.stringify(obj.toObject()));
+        }
+        return JSON.parse(JSON.stringify(obj));
+    } catch (error) {
+        console.error('Error serializing object for session:', error);
+        return null;
+    }
+}
 
-    const updateUser = (req, res) => {
+export default function UserRoutes(app) {
+    const createUser = async (req, res) => {
+        try {
+            const newUser = await dao.createUser(req.body);
+            res.json(newUser);
+        } catch (error) {
+            res.status(500).json({ message: "Error creating user", error: error.message });
+        }
+    };
+    const deleteUser = async (req, res) => {
+        try {
+            const status = await dao.deleteUser(req.params.userId);
+            res.json(status);
+        } catch (error) {
+            res.status(500).json({ message: "Error deleting user", error: error.message });
+        }
+    };
+    const findAllUsers = async (req, res) => {
+        try {
+            const { role, name } = req.query;
+            if (role) {
+                const usersByRole = await dao.findUsersByRole(role);
+                res.json(usersByRole);
+                return;
+            }
+            if (name) {
+                const usersByName = await dao.findUsersByPartialName(name);
+                res.json(usersByName);
+                return;
+            }
+            const users = await dao.findAllUsers();
+            res.json(users);
+        } catch (error) {
+            res.status(500).json({ message: "Error finding users", error: error.message });
+        }
+    };
+    const findUserById = async (req, res) => {
+        try {
+            const user = await dao.findUserById(req.params.userId);
+            if (user) {
+                res.json(user);
+            } else {
+                res.status(404).json({ message: "User not found" });
+            }
+        } catch (error) {
+            res.status(500).json({ message: "Error finding user", error: error.message });
+        }
+    };
+
+    const updateUser = async (req, res) => {
         const userId = req.params.userId;
         const userUpdates = req.body;
-        dao.updateUser(userId, userUpdates);
-        const currentUser = dao.findUserById(userId);
-        req.session["currentUser"] = currentUser;
-        res.json(currentUser);
+        await dao.updateUser(userId, userUpdates);
+        const currentUser = req.session["currentUser"];
+        if (currentUser && currentUser._id === userId) {
+            req.session["currentUser"] = { ...currentUser, ...userUpdates };
+            res.json(currentUser);
+        } else {
+            res.status(404).json({ message: "User not found" });
+        }
     };
-    const signup = (req, res) => {
-        const user = dao.findUserByUsername(req.body.username);
+    const signup = async (req, res) => {
+        const user = await dao.findUserByUsername(req.body.username);
         if (user) {
             res.status(400).json({ message: "Username already in use" });
             return;
         }
-        const currentUser = dao.createUser(req.body);
-        req.session["currentUser"] = currentUser;
-        res.json(currentUser);
-    };
-    const signin = (req, res) => {
-        const { username, password } = req.body;
-        const currentUser = dao.findUserByCredentials(username, password);
+        const currentUser = await dao.createUser(req.body);
         if (currentUser) {
-            req.session["currentUser"] = currentUser;
+            req.session["currentUser"] = toSessionSafe(currentUser);
+            res.json(currentUser);
+        } else {
+            res.status(500).json({ message: "Failed to create user" });
+        }
+    };
+    const signin = async (req, res) => {
+        const { username, password } = req.body;
+        const currentUser = await dao.findUserByCredentials(username, password);
+        if (currentUser) {
+            req.session["currentUser"] = toSessionSafe(currentUser);
             res.json(currentUser);
         } else {
             res.status(401).json({
@@ -65,10 +130,10 @@ export default function UserRoutes(app) {
     };
     app.get("/api/users/:userId/courses", findCoursesForEnrolledUser);
 
-    const createCourse = (req, res) => {
+    const createCourse = async (req, res) => {
         const currentUser = req.session["currentUser"];
-        const newCourse = courseDao.createCourse(req.body);
-        enrollmentsDao.enrollUserInCourse(currentUser._id, newCourse._id);
+        const newCourse = await courseDao.createCourse(req.body);
+        await enrollmentsDao.enrollUserInCourse(currentUser._id, newCourse._id);
         res.json(newCourse);
     };
     app.post("/api/users/current/courses", createCourse);
