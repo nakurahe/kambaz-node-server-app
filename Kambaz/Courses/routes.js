@@ -14,6 +14,11 @@ export default function CourseRoutes(app) {
         res.send(courses);
     });
 
+    app.post("/api/courses", async (req, res) => {
+        const course = await dao.createCourse(req.body);
+        res.json(course);
+    });
+
     app.delete("/api/courses/:courseId", async (req, res) => {
         const { courseId } = req.params;
         const status = await dao.deleteCourse(courseId);
@@ -42,7 +47,9 @@ export default function CourseRoutes(app) {
 
     app.get("/api/courses/:courseId/assignments", async (req, res) => {
         const { courseId } = req.params;
-        const assignments = await assignmentsDao.findAssignmentsForCourse(courseId);
+        const assignments = await assignmentsDao.findAssignmentsForCourse(
+            courseId
+        );
         res.json(assignments);
     });
 }
