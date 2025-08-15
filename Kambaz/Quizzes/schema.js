@@ -21,6 +21,7 @@ const quizzesSchema = new mongoose.Schema(
         dueDate: Date,
         availableFrom: Date,
         availableUntil: Date,
+        published: { type: Boolean, default: false }
     },
     { collection: "quizzes" }
 );
