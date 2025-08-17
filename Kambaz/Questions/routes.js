@@ -72,4 +72,32 @@ export default function QuestionRoutes(app) {
         const status = await questionsDao.deleteQuestionsForQuiz(quizId);
         res.send(status);
     });
+
+    // Check a single answer
+    app.post('/api/questions/:questionId/check', async (req, res) => {
+        const { questionId } = req.params;
+        const { userAnswer } = req.body;
+        
+        const question = await questionsDao.findQuestionById(questionId);
+        if (!question) {
+            res.status(404).json({ error: 'Question not found' });
+            return;
+        }
+
+        const isCorrect = questionsDao.checkAnswer(question, userAnswer);
+        res.json({ 
+            isCorrect, 
+            pointsEarned: isCorrect ? question.points : 0,
+            pointsPossible: question.points
+        });
+    });
+
+    // Grade all answers for a quiz
+    app.post('/api/quizzes/:quizId/grade', async (req, res) => {
+        const { quizId } = req.params;
+        const { userAnswers } = req.body; // Object with questionId as key, answer as value
+        
+        const gradingResult = await questionsDao.gradeQuizAnswers(quizId, userAnswers);
+        res.json(gradingResult);
+    });
 }
