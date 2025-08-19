@@ -9,6 +9,7 @@ import ModuleRoutes from "./Kambaz/Modules/routes.js";
 import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
 import QuizRoutes from "./Kambaz/Quizzes/routes.js";
 import QuestionRoutes from "./Kambaz/Questions/routes.js";
+import QuizAttemptRoutes from "./Kambaz/QuizAttempts/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 import PeopleRoutes from "./Kambaz/People/routes.js";
 import "dotenv/config";
@@ -71,6 +72,7 @@ ModuleRoutes(app);
 AssignmentRoutes(app);
 QuizRoutes(app);
 QuestionRoutes(app);
+QuizAttemptRoutes(app);
 EnrollmentRoutes(app);
 PeopleRoutes(app);
 
