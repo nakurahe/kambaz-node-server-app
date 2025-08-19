@@ -8,11 +8,14 @@ export default function QuizAttemptRoutes(app) {
         try {
             const { userId, quizId, answers } = req.body;
             
-            // Create attempt data
+            // Get the current attempt count for this user and quiz
+            const attemptCount = await quizAttemptsDao.getAttemptCount(userId, quizId);
+            
+            // Create attempt data with proper individual user record
             const attemptData = {
-                _id: new Date().getTime().toString(),
                 user: userId,
                 quiz: quizId,
+                attemptNumber: attemptCount + 1,
                 answers: answers.map(answer => ({
                     question: answer.questionId,
                     answer: answer.answer,
@@ -26,7 +29,7 @@ export default function QuizAttemptRoutes(app) {
             
             const attempt = await quizAttemptsDao.submitQuizAttempt(attemptData);
             
-            // Auto-grade the attempt
+            // Auto-grade the attempt using standardized grading logic
             await gradeAttempt(attempt._id);
             
             // Return the graded attempt
@@ -70,9 +73,32 @@ export default function QuizAttemptRoutes(app) {
             res.status(500).json({ error: error.message });
         }
     });
+
+    // Get latest attempt for a user and quiz
+    app.get("/api/quiz-attempts/user/:userId/quiz/:quizId/latest", async (req, res) => {
+        try {
+            const { userId, quizId } = req.params;
+            const attempt = await quizAttemptsDao.findLatestAttemptByUserAndQuiz(userId, quizId);
+            res.json(attempt);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    // Check if user has taken a quiz
+    app.get("/api/quiz-attempts/user/:userId/quiz/:quizId/has-taken", async (req, res) => {
+        try {
+            const { userId, quizId } = req.params;
+            const hasTaken = await quizAttemptsDao.hasUserTakenQuiz(userId, quizId);
+            const attemptCount = await quizAttemptsDao.getAttemptCount(userId, quizId);
+            res.json({ hasTaken, attemptCount });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
 }
 
-// Helper function to grade an attempt
+// Helper function to grade an attempt using standardized grading logic
 async function gradeAttempt(attemptId) {
     try {
         const attempt = await quizAttemptsDao.findAttemptById(attemptId);
@@ -81,7 +107,7 @@ async function gradeAttempt(attemptId) {
         let totalPoints = 0;
         let maxPoints = 0;
         
-        // Grade each answer
+        // Grade each answer using the standardized grading logic
         for (let i = 0; i < attempt.answers.length; i++) {
             const answerData = attempt.answers[i];
             const question = await questionsDao.findQuestionById(answerData.question);
@@ -89,8 +115,13 @@ async function gradeAttempt(attemptId) {
             if (question) {
                 maxPoints += question.points;
                 
-                // Simple grading logic - compare answers
-                const isCorrect = compareAnswers(answerData.answer, question.correctAnswers);
+                // Use the standardized checkAnswer function from Questions DAO
+                // Convert array answers to single answer for the checkAnswer function
+                const userAnswer = Array.isArray(answerData.answer) && answerData.answer.length === 1 
+                    ? answerData.answer[0] 
+                    : answerData.answer;
+                    
+                const isCorrect = questionsDao.checkAnswer(question, userAnswer);
                 const pointsEarned = isCorrect ? question.points : 0;
                 
                 attempt.answers[i].isCorrect = isCorrect;
@@ -112,22 +143,4 @@ async function gradeAttempt(attemptId) {
     } catch (error) {
         console.error("Error grading attempt:", error);
     }
-}
-
-// Helper function to compare answers
-function compareAnswers(userAnswers, correctAnswers) {
-    if (!userAnswers || !correctAnswers) return false;
-    
-    // Convert to arrays if not already
-    const userArray = Array.isArray(userAnswers) ? userAnswers : [userAnswers];
-    const correctArray = Array.isArray(correctAnswers) ? correctAnswers : [correctAnswers];
-    
-    // Simple comparison - you can make this more sophisticated
-    if (userArray.length !== correctArray.length) return false;
-    
-    // Sort both arrays and compare
-    const sortedUser = userArray.map(a => String(a).toLowerCase().trim()).sort();
-    const sortedCorrect = correctArray.map(a => String(a).toLowerCase().trim()).sort();
-    
-    return sortedUser.every((answer, index) => answer === sortedCorrect[index]);
 }

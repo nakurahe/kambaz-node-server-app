@@ -38,21 +38,42 @@ export function checkAnswer(question, userAnswer) {
 
     switch (question.questionType) {
         case "True/False":
-            return question.correctAnswers.includes(userAnswer);
+            // Handle both string and boolean values
+            const normalizedUserAnswer = String(userAnswer).toLowerCase();
+            return question.correctAnswers.some(correctAnswer => 
+                String(correctAnswer).toLowerCase() === normalizedUserAnswer
+            );
         
         case "MultipleChoice":
-            // If correctAnswers contains indices
-            if (typeof question.correctAnswers[0] === 'number') {
-                return question.correctAnswers.includes(parseInt(userAnswer));
+            // Handle single or multiple selections
+            if (Array.isArray(userAnswer)) {
+                // Multiple selections - check if all user answers are in correct answers
+                if (userAnswer.length === 0) return false;
+                
+                // If correctAnswers contains indices
+                if (typeof question.correctAnswers[0] === 'number') {
+                    const userIndices = userAnswer.map(answer => parseInt(answer));
+                    return userIndices.every(index => question.correctAnswers.includes(index)) &&
+                           userIndices.length === question.correctAnswers.length;
+                }
+                // If correctAnswers contains the actual answer text
+                return userAnswer.every(answer => question.correctAnswers.includes(answer)) &&
+                       userAnswer.length === question.correctAnswers.length;
+            } else {
+                // Single selection
+                // If correctAnswers contains indices
+                if (typeof question.correctAnswers[0] === 'number') {
+                    return question.correctAnswers.includes(parseInt(userAnswer));
+                }
+                // If correctAnswers contains the actual answer text
+                return question.correctAnswers.includes(userAnswer);
             }
-            // If correctAnswers contains the actual answer text
-            return question.correctAnswers.includes(userAnswer);
         
         case "FillInBlank":
             // Case-insensitive comparison for fill-in-blank
-            const normalizedUserAnswer = userAnswer.toLowerCase().trim();
+            const normalizedAnswer = String(userAnswer).toLowerCase().trim();
             return question.correctAnswers.some(correctAnswer => 
-                correctAnswer.toLowerCase().trim() === normalizedUserAnswer
+                String(correctAnswer).toLowerCase().trim() === normalizedAnswer
             );
         
         default:
