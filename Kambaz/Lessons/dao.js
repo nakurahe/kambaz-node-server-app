@@ -60,6 +60,20 @@ export function updateQuizGenerationStatus(lessonId, status, quizId = null, erro
     return model.updateOne({ _id: lessonId }, { $set: updates });
 }
 
+// Update progress
+export function updateProgress(lessonId, progress, progressMessage) {
+    return model.updateOne(
+        { _id: lessonId },
+        { 
+            $set: { 
+                progress, 
+                progressMessage,
+                updatedAt: new Date()
+            } 
+        }
+    );
+}
+
 // Find lesson by quiz ID
 export function findLessonByQuizId(quizId) {
     return model.findOne({ quizId: quizId });

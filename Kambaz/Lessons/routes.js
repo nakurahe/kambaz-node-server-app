@@ -106,7 +106,11 @@ router.post("/modules/:mid/lessons", upload.single("video"), async (req, res) =>
             description: description || "",
             module: mid,
             course,
-            quizGenerationStatus: "none"
+            quizGenerationStatus: "none",
+            numQuestions: parseInt(numQuestions) || 10,
+            difficulty: difficulty || "medium",
+            progress: 0,
+            progressMessage: ""
         };
         
         // Handle video upload
@@ -118,6 +122,7 @@ router.post("/modules/:mid/lessons", upload.single("video"), async (req, res) =>
         // If quiz generation is requested
         if (generateQuiz === "true" && req.file) {
             lessonData.quizGenerationStatus = "pending";
+            lessonData.progressMessage = "Quiz generation queued...";
         }
         
         // Create the lesson
@@ -246,8 +251,14 @@ router.post("/lessons/:lid/generate-quiz", async (req, res) => {
             return res.status(400).json({ error: "Quiz generation already in progress" });
         }
         
-        // Update status to pending
+        // Update status to pending with options
         await lessonDao.updateQuizGenerationStatus(lid, "pending");
+        await lessonDao.updateLesson(lid, {
+            numQuestions: numQuestions || 10,
+            difficulty: difficulty || "medium",
+            progress: 0,
+            progressMessage: "Quiz generation queued..."
+        });
         
         // Start quiz generation in background
         processLessonVideo(lid, {

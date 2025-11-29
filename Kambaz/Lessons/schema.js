@@ -20,6 +20,10 @@ const schema = new mongoose.Schema(
             default: "none"
         },
         quizGenerationError: String,
+        progress: { type: Number, default: 0 },
+        progressMessage: { type: String, default: "" },
+        numQuestions: { type: Number, default: 10 },
+        difficulty: { type: String, default: "medium" },
         
         // Timestamps
         createdAt: { type: Date, default: Date.now },

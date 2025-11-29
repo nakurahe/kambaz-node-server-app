@@ -74,6 +74,9 @@ export async function processLessonVideo(lessonId, options = {}) {
         console.log(`Video: ${videoPath}`);
         console.log(`Output: ${outputDir}`);
         
+        // Update initial progress
+        await lessonDao.updateProgress(lessonId, 0, "Starting pipeline...");
+        
         // Use -u flag for unbuffered Python output
         const pythonProcess = spawn(PYTHON_PATH, [
             "-u",
@@ -90,11 +93,17 @@ export async function processLessonVideo(lessonId, options = {}) {
         let stdout = "";
         let stderr = "";
         
-        // Capture stdout
-        pythonProcess.stdout.on("data", (data) => {
+        // Capture stdout and parse progress
+        pythonProcess.stdout.on("data", async (data) => {
             const output = data.toString();
             stdout += output;
             console.log(`[Lesson ${lessonId} Pipeline] ${output}`);
+            
+            // Parse progress from output
+            const progressInfo = parseProgress(output);
+            if (progressInfo) {
+                await lessonDao.updateProgress(lessonId, progressInfo.progress, progressInfo.message);
+            }
         });
         
         pythonProcess.stderr.on("data", (data) => {
@@ -110,6 +119,9 @@ export async function processLessonVideo(lessonId, options = {}) {
         if (exitCode !== 0) {
             throw new Error(`Pipeline failed with exit code ${exitCode}: ${stderr}`);
         }
+        
+        // Update progress before reading quiz
+        await lessonDao.updateProgress(lessonId, 95, "Saving quiz to database...");
         
         // Read generated quiz JSON
         const quizJsonPath = path.join(outputDir, "quiz_multimodal.json");
@@ -138,7 +150,8 @@ export async function processLessonVideo(lessonId, options = {}) {
         }
         console.log(`Created ${questions.length} questions`);
         
-        // Update lesson with quiz reference
+        // Update lesson with quiz reference and final progress
+        await lessonDao.updateProgress(lessonId, 100, "Quiz generation completed!");
         await lessonDao.updateQuizGenerationStatus(lessonId, "completed", createdQuiz._id);
         
         // Update quiz with lesson reference
@@ -149,6 +162,7 @@ export async function processLessonVideo(lessonId, options = {}) {
     } catch (error) {
         console.error(`Lesson ${lessonId} quiz generation failed:`, error);
         
+        await lessonDao.updateProgress(lessonId, 0, `Error: ${error.message}`);
         await lessonDao.updateQuizGenerationStatus(
             lessonId, 
             "error", 
@@ -156,6 +170,73 @@ export async function processLessonVideo(lessonId, options = {}) {
             error.message
         );
     }
+}
+
+/**
+ * Parse progress from pipeline output
+ * @param {string} output - Pipeline stdout output
+ * @returns {Object|null} - { progress, message } or null
+ */
+function parseProgress(output) {
+    // Match progress patterns from the pipeline
+    const lines = output.split('\n').filter(line => line.trim());
+    
+    for (const line of lines) {
+        // Pattern: "Step X/Y: description" or percentage patterns
+        const stepMatch = line.match(/Step\s+(\d+)\/(\d+):\s*(.+)/i);
+        if (stepMatch) {
+            const current = parseInt(stepMatch[1]);
+            const total = parseInt(stepMatch[2]);
+            const message = stepMatch[3].trim();
+            const progress = Math.round((current / total) * 90); // Reserve 10% for final steps
+            return { progress, message };
+        }
+        
+        // Pattern: "Progress: XX%" 
+        const percentMatch = line.match(/Progress:\s*(\d+)%/i);
+        if (percentMatch) {
+            return { progress: parseInt(percentMatch[1]), message: line.trim() };
+        }
+        
+        // Pattern: "[STAGE] message"
+        const stageMatch = line.match(/\[(AUDIO|VIDEO|TRANSCRIPT|SLIDES|QUIZ|OCR|LLM)\]\s*(.+)/i);
+        if (stageMatch) {
+            const stage = stageMatch[1].toUpperCase();
+            const message = stageMatch[2].trim();
+            const stageProgress = {
+                'AUDIO': 10,
+                'VIDEO': 20,
+                'OCR': 30,
+                'SLIDES': 40,
+                'TRANSCRIPT': 50,
+                'LLM': 70,
+                'QUIZ': 85
+            };
+            return { progress: stageProgress[stage] || 50, message: `${stage}: ${message}` };
+        }
+        
+        // Check for common stage messages
+        if (line.includes("Extracting audio")) {
+            return { progress: 10, message: "Extracting audio from video..." };
+        }
+        if (line.includes("Transcribing")) {
+            return { progress: 25, message: "Transcribing audio..." };
+        }
+        if (line.includes("Processing slides") || line.includes("Detecting slides")) {
+            return { progress: 40, message: "Processing video slides..." };
+        }
+        if (line.includes("OCR") || line.includes("text extraction")) {
+            return { progress: 55, message: "Extracting text from slides..." };
+        }
+        if (line.includes("Generating quiz") || line.includes("LLM")) {
+            return { progress: 70, message: "Generating quiz questions..." };
+        }
+        if (line.includes("complete") || line.includes("finished") || line.includes("done")) {
+            return { progress: 90, message: line.trim() };
+        }
+    }
+    
+    return null;
 }
 
 /**
