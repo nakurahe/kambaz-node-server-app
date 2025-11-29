@@ -73,7 +73,9 @@ export async function processVideo(jobId) {
         console.log(`Video: ${videoPath}`);
         console.log(`Output: ${outputDir}`);
         
+        // Use -u flag for unbuffered Python output (real-time streaming)
         const pythonProcess = spawn(PYTHON_PATH, [
+            "-u",  // Unbuffered output - critical for real-time progress
             pipelineScript,
             videoPath,
             "--output", outputDir,
@@ -93,15 +95,23 @@ export async function processVideo(jobId) {
             stdout += output;
             console.log(`[Pipeline ${jobId}] ${output}`);
             
-            // Parse progress from output
-            if (output.includes("Extracting slides")) {
+            // Parse progress markers from output (look for [PROGRESS] tags)
+            if (output.includes("[PROGRESS] Pipeline started") || output.includes("[PROGRESS] Content extraction")) {
+                await videoQuizDao.updateJobProgress(jobId, 10, "Starting content extraction...");
+            } else if (output.includes("[PROGRESS] Extracting slides")) {
                 await videoQuizDao.updateJobProgress(jobId, 20, "Extracting slides from video...");
-            } else if (output.includes("Transcribing audio")) {
-                await videoQuizDao.updateJobProgress(jobId, 40, "Transcribing audio...");
-            } else if (output.includes("Generating quizzes")) {
-                await videoQuizDao.updateJobProgress(jobId, 70, "Generating quiz questions...");
-            } else if (output.includes("PIPELINE COMPLETE")) {
-                await videoQuizDao.updateJobProgress(jobId, 90, "Finalizing...");
+            } else if (output.includes("[PROGRESS] Transcribing audio")) {
+                await videoQuizDao.updateJobProgress(jobId, 30, "Transcribing audio...");
+            } else if (output.includes("Slides extracted")) {
+                await videoQuizDao.updateJobProgress(jobId, 40, "Slides extracted, continuing...");
+            } else if (output.includes("Audio transcribed")) {
+                await videoQuizDao.updateJobProgress(jobId, 50, "Audio transcribed, continuing...");
+            } else if (output.includes("[PROGRESS] Quiz generation phase") || output.includes("[PROGRESS] Generating quizzes")) {
+                await videoQuizDao.updateJobProgress(jobId, 60, "Generating quiz questions with AI...");
+            } else if (output.includes("Multimodal quiz generated")) {
+                await videoQuizDao.updateJobProgress(jobId, 80, "Quiz generated, finalizing...");
+            } else if (output.includes("[PROGRESS] Pipeline complete") || output.includes("PIPELINE COMPLETE")) {
+                await videoQuizDao.updateJobProgress(jobId, 95, "Pipeline complete, saving to database...");
             }
         });
         

@@ -38,9 +38,10 @@ def extract_slides(video_path: str, output_dir: str) -> dict:
     """
     from src.extractor import extract_slides as _extract_slides
     
-    print("\n" + "=" * 50)
-    print("🎬 STEP 1a: Extracting slides from video...")
-    print("=" * 50)
+    print("\n" + "=" * 50, flush=True)
+    print("[PROGRESS] Extracting slides", flush=True)
+    print("🎬 STEP 1a: Extracting slides from video...", flush=True)
+    print("=" * 50, flush=True)
     
     slides_output_dir = os.path.join(output_dir, "slides")
     os.makedirs(slides_output_dir, exist_ok=True)
@@ -63,8 +64,8 @@ def extract_slides(video_path: str, output_dir: str) -> dict:
             slides_data = json.load(f)
         with open(slides_json_path, "w") as f:
             json.dump(slides_data, f, indent=2)
-        print(f"✅ Slides extracted: {result['slides_count']} slides")
-        print(f"   Output: {slides_json_path}")
+        print(f"✅ Slides extracted: {result['slides_count']} slides", flush=True)
+        print(f"   Output: {slides_json_path}", flush=True)
     
     return {
         "status": result.get("status"),
@@ -83,9 +84,10 @@ def transcribe_audio(video_path: str, output_dir: str) -> dict:
     """
     from faster_whisper import WhisperModel
     
-    print("\n" + "=" * 50)
-    print("🎙️ STEP 1b: Transcribing audio from video...")
-    print("=" * 50)
+    print("\n" + "=" * 50, flush=True)
+    print("[PROGRESS] Transcribing audio", flush=True)
+    print("🎙️ STEP 1b: Transcribing audio from video...", flush=True)
+    print("=" * 50, flush=True)
     
     os.makedirs(output_dir, exist_ok=True)
     transcript_json_path = os.path.join(output_dir, "transcript.json")
@@ -108,8 +110,8 @@ def transcribe_audio(video_path: str, output_dir: str) -> dict:
     with open(transcript_json_path, "w", encoding="utf-8") as f:
         json.dump(segments_data, f, ensure_ascii=False, indent=2)
     
-    print(f"✅ Audio transcribed: {len(segments_data)} segments")
-    print(f"   Output: {transcript_json_path}")
+    print(f"✅ Audio transcribed: {len(segments_data)} segments", flush=True)
+    print(f"   Output: {transcript_json_path}", flush=True)
     
     return {
         "status": "success",
@@ -159,9 +161,10 @@ def generate_quizzes(
     """
     from quiz_generator import QuizGenerator
     
-    print("\n" + "=" * 50)
-    print("🤖 STEP 2: Generating quizzes with LLM...")
-    print("=" * 50)
+    print("\n" + "=" * 50, flush=True)
+    print("[PROGRESS] Generating quizzes", flush=True)
+    print("🤖 STEP 2: Generating quizzes with LLM...", flush=True)
+    print("=" * 50, flush=True)
     
     results = {
         "multimodal": None,
@@ -169,7 +172,7 @@ def generate_quizzes(
     }
     
     # Generate multimodal quiz (transcript + slides)
-    print("\n--- Generating Multimodal Quiz (transcript + slides) ---")
+    print("\n--- Generating Multimodal Quiz (transcript + slides) ---", flush=True)
     try:
         multimodal_output = os.path.join(output_dir, "quiz_multimodal.json")
         multimodal_generator = QuizGenerator(use_baseline=False)
@@ -181,12 +184,12 @@ def generate_quizzes(
         )
         multimodal_generator.save_quiz(multimodal_quiz, multimodal_output)
         results["multimodal"] = multimodal_output
-        print(f"✅ Multimodal quiz generated: {multimodal_output}")
+        print(f"✅ Multimodal quiz generated: {multimodal_output}", flush=True)
     except Exception as e:
-        print(f"❌ Multimodal quiz generation failed: {e}")
+        print(f"❌ Multimodal quiz generation failed: {e}", flush=True)
     
     # Generate baseline quiz (transcript only)
-    print("\n--- Generating Baseline Quiz (transcript only) ---")
+    print("\n--- Generating Baseline Quiz (transcript only) ---", flush=True)
     try:
         baseline_output = os.path.join(output_dir, "quiz_baseline.json")
         baseline_generator = QuizGenerator(use_baseline=True)
@@ -198,9 +201,9 @@ def generate_quizzes(
         )
         baseline_generator.save_quiz(baseline_quiz, baseline_output)
         results["baseline"] = baseline_output
-        print(f"✅ Baseline quiz generated: {baseline_output}")
+        print(f"✅ Baseline quiz generated: {baseline_output}", flush=True)
     except Exception as e:
-        print(f"❌ Baseline quiz generation failed: {e}")
+        print(f"❌ Baseline quiz generation failed: {e}", flush=True)
     
     return results
 
@@ -227,13 +230,14 @@ def run_pipeline(
     """
     start_time = time.time()
     
-    print("\n" + "=" * 70)
-    print("🎓 SMART VIDEO QUIZ GENERATOR - Pipeline Started")
-    print("=" * 70)
-    print(f"\n📁 Input video: {video_path}")
-    print(f"📂 Output directory: {output_dir}")
-    print(f"❓ Questions: {num_questions}")
-    print(f"📊 Difficulty: {difficulty}")
+    print("\n" + "=" * 70, flush=True)
+    print("[PROGRESS] Pipeline started", flush=True)
+    print("🎓 SMART VIDEO QUIZ GENERATOR - Pipeline Started", flush=True)
+    print("=" * 70, flush=True)
+    print(f"\n📁 Input video: {video_path}", flush=True)
+    print(f"📂 Output directory: {output_dir}", flush=True)
+    print(f"❓ Questions: {num_questions}", flush=True)
+    print(f"📊 Difficulty: {difficulty}", flush=True)
     
     # Validate input
     if not os.path.exists(video_path):
@@ -246,23 +250,25 @@ def run_pipeline(
     transcript_json = os.path.join(output_dir, "transcript.json")
     
     if skip_extraction and os.path.exists(slides_json) and os.path.exists(transcript_json):
-        print("\n⏭️ Skipping extraction (JSON files already exist)")
+        print("\n⏭️ Skipping extraction (JSON files already exist)", flush=True)
         slides_result = {"status": "skipped", "output_file": slides_json}
         transcript_result = {"status": "skipped", "output_file": transcript_json}
     else:
         # Step 1: Run extraction in parallel
-        print("\n" + "-" * 70)
-        print("PHASE 1: Content Extraction (parallel processing)")
-        print("-" * 70)
+        print("\n" + "-" * 70, flush=True)
+        print("[PROGRESS] Content extraction", flush=True)
+        print("PHASE 1: Content Extraction (parallel processing)", flush=True)
+        print("-" * 70, flush=True)
         
         slides_result, transcript_result = asyncio.run(
             run_extraction_parallel(video_path, output_dir)
         )
     
     # Step 2: Generate quizzes
-    print("\n" + "-" * 70)
-    print("PHASE 2: Quiz Generation")
-    print("-" * 70)
+    print("\n" + "-" * 70, flush=True)
+    print("[PROGRESS] Quiz generation phase", flush=True)
+    print("PHASE 2: Quiz Generation", flush=True)
+    print("-" * 70, flush=True)
     
     quiz_results = generate_quizzes(
         transcript_path=transcript_json,
@@ -275,17 +281,18 @@ def run_pipeline(
     # Summary
     elapsed_time = time.time() - start_time
     
-    print("\n" + "=" * 70)
-    print("✅ PIPELINE COMPLETE")
-    print("=" * 70)
-    print(f"\n⏱️ Total time: {elapsed_time:.1f} seconds")
-    print(f"\n📂 Output files in: {output_dir}/")
-    print(f"   ├── slides.json          (slide metadata)")
-    print(f"   ├── slides/              (slide images)")
-    print(f"   ├── transcript.json      (audio transcription)")
-    print(f"   ├── quiz_multimodal.json (transcript + slides quiz)")
-    print(f"   └── quiz_baseline.json   (transcript-only quiz)")
-    print("=" * 70)
+    print("\n" + "=" * 70, flush=True)
+    print("[PROGRESS] Pipeline complete", flush=True)
+    print("✅ PIPELINE COMPLETE", flush=True)
+    print("=" * 70, flush=True)
+    print(f"\n⏱️ Total time: {elapsed_time:.1f} seconds", flush=True)
+    print(f"\n📂 Output files in: {output_dir}/", flush=True)
+    print(f"   ├── slides.json          (slide metadata)", flush=True)
+    print(f"   ├── slides/              (slide images)", flush=True)
+    print(f"   ├── transcript.json      (audio transcription)", flush=True)
+    print(f"   ├── quiz_multimodal.json (transcript + slides quiz)", flush=True)
+    print(f"   └── quiz_baseline.json   (transcript-only quiz)", flush=True)
+    print("=" * 70, flush=True)
     
     return {
         "status": "success",
@@ -355,13 +362,13 @@ Examples:
         sys.exit(0 if result["status"] == "success" else 1)
         
     except FileNotFoundError as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n❌ Error: {e}", flush=True)
         sys.exit(1)
     except KeyboardInterrupt:
-        print("\n\n⚠️ Pipeline cancelled by user")
+        print("\n\n⚠️ Pipeline cancelled by user", flush=True)
         sys.exit(130)
     except Exception as e:
-        print(f"\n❌ Pipeline failed: {e}")
+        print(f"\n❌ Pipeline failed: {e}", flush=True)
         sys.exit(1)
 
 
