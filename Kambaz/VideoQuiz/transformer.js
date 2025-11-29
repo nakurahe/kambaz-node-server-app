@@ -61,21 +61,12 @@ export function transformToKambazQuestions(pipelineQuiz, quizId) {
         const correctIndex = correctAnswerLetter ? 
             correctAnswerLetter.charCodeAt(0) - 'A'.charCodeAt(0) : 0;
         
-        // Build question description with explanation and reference
-        let description = q.question_text;
-        if (q.topic) {
-            description += `\n\nTopic: ${q.topic}`;
-        }
-        if (q.reference) {
-            description += `\nReference: ${q.reference}`;
-        }
-        
         return {
             _id: uuidv4(),
             quiz: quizId,
             questionType: "MultipleChoice",
-            title: `Question ${index + 1}`,
-            questionDescription: description,
+            title: q.topic,
+            questionDescription: q.question_text,
             points: 1,
             answers: answers,
             correctAnswers: [correctIndex],
