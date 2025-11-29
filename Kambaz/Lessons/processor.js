@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 import * as lessonDao from "./dao.js";
 import * as quizzesDao from "../Quizzes/dao.js";
 import * as questionsDao from "../Questions/dao.js";
-import { transformPipelineOutput } from "../VideoQuiz/transformer.js";
+import { transformPipelineOutput } from "./transformer.js";
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);

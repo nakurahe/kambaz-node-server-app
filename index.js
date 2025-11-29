@@ -15,7 +15,6 @@ import QuestionRoutes from "./Kambaz/Questions/routes.js";
 import QuizAttemptRoutes from "./Kambaz/QuizAttempts/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 import PeopleRoutes from "./Kambaz/People/routes.js";
-import VideoQuizRoutes from "./Kambaz/VideoQuiz/routes.js";
 import LessonRoutes from "./Kambaz/Lessons/routes.js";
 import mongoose from "mongoose";
 
@@ -79,7 +78,6 @@ QuestionRoutes(app);
 QuizAttemptRoutes(app);
 EnrollmentRoutes(app);
 PeopleRoutes(app);
-VideoQuizRoutes(app);
 LessonRoutes(app);
 
 app.listen(process.env.PORT || 4000);
