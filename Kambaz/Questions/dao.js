@@ -45,28 +45,17 @@ export function checkAnswer(question, userAnswer) {
             );
         
         case "MultipleChoice":
-            // Handle single or multiple selections
+            // correctAnswers stores indices (e.g., [0], [1], [2])
+            // userAnswer is also index-based (e.g., [0] or 0)
             if (Array.isArray(userAnswer)) {
-                // Multiple selections - check if all user answers are in correct answers
                 if (userAnswer.length === 0) return false;
-                
-                // If correctAnswers contains indices
-                if (typeof question.correctAnswers[0] === 'number') {
-                    const userIndices = userAnswer.map(answer => parseInt(answer));
-                    return userIndices.every(index => question.correctAnswers.includes(index)) &&
-                           userIndices.length === question.correctAnswers.length;
-                }
-                // If correctAnswers contains the actual answer text
-                return userAnswer.every(answer => question.correctAnswers.includes(answer)) &&
-                       userAnswer.length === question.correctAnswers.length;
+                // Convert to numbers and compare
+                const userIndices = userAnswer.map(a => Number(a));
+                return userIndices.every(idx => question.correctAnswers.includes(idx)) &&
+                       userIndices.length === question.correctAnswers.length;
             } else {
-                // Single selection
-                // If correctAnswers contains indices
-                if (typeof question.correctAnswers[0] === 'number') {
-                    return question.correctAnswers.includes(parseInt(userAnswer));
-                }
-                // If correctAnswers contains the actual answer text
-                return question.correctAnswers.includes(userAnswer);
+                // Single selection - check if index matches
+                return question.correctAnswers.includes(Number(userAnswer));
             }
         
         case "FillInBlank":
