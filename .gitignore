@@ -196,3 +196,14 @@ dist
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,node,dotenv
+# Video uploads
+uploads/
+
+# Pipeline outputs and virtual environments
+pipeline/output/
+pipeline/.venv/
+pipeline/__pycache__/
+pipeline/*/__pycache__/
+pipeline/*/*/__pycache__/
+pipeline/.git/
+pipeline/test_video.mp4

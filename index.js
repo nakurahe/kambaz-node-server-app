@@ -1,3 +1,6 @@
+// Load environment variables FIRST before any other imports
+import "dotenv/config";
+
 import express from "express";
 import Hello from "./Hello.js";
 import Lab5 from "./Lab5/index.js";
@@ -12,7 +15,7 @@ import QuestionRoutes from "./Kambaz/Questions/routes.js";
 import QuizAttemptRoutes from "./Kambaz/QuizAttempts/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 import PeopleRoutes from "./Kambaz/People/routes.js";
-import "dotenv/config";
+import VideoQuizRoutes from "./Kambaz/VideoQuiz/routes.js";
 import mongoose from "mongoose";
 
 const CONNECTION_STRING = process.env.MONGODB_CONNECTION_STRING || "mongodb://localhost:27017/kambaz";
@@ -75,5 +78,6 @@ QuestionRoutes(app);
 QuizAttemptRoutes(app);
 EnrollmentRoutes(app);
 PeopleRoutes(app);
+VideoQuizRoutes(app);
 
 app.listen(process.env.PORT || 4000);
