@@ -136,8 +136,10 @@ export async function processVideo(jobId) {
         const createdQuiz = await quizzesDao.createQuiz(quiz);
         console.log(`Created quiz: ${createdQuiz._id}`);
         
-        // Save questions to database
+        // Save questions to database - use the ACTUAL quiz ID from database
+        // (DAO may generate a new _id, so we need to use createdQuiz._id)
         for (const question of questions) {
+            question.quiz = createdQuiz._id; // Fix: ensure questions link to actual quiz ID
             await questionsDao.createQuestion(question);
         }
         console.log(`Created ${questions.length} questions`);
