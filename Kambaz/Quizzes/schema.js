@@ -21,7 +21,9 @@ const quizzesSchema = new mongoose.Schema(
         dueDate: Date,
         availableFrom: Date,
         availableUntil: Date,
-        published: { type: Boolean, default: false }
+        published: { type: Boolean, default: false },
+        // Lesson reference (for auto-generated quizzes from lessons)
+        lesson: { type: String, ref: "LessonModel" }
     },
     { collection: "quizzes" }
 );
